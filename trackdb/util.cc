@@ -19,9 +19,7 @@
 
 #include <config.h>
 
-#ifdef HAVE_ICONV
 #include <iconv.h>
-#endif
 
 #include <stdio.h>
 #include <unistd.h>
@@ -129,7 +127,7 @@ long fullRead(int fd, void *buf, long count)
 {
   long n = 0;
   long nread = 0;
-  
+
   do {
     do {
       n = read(fd, (char *)buf + nread, count);
@@ -142,7 +140,7 @@ long fullRead(int fd, void *buf, long count)
     if (n == 0) {
       return nread;
     }
-    
+
     count -= n;
     nread += n;
   } while (count > 0);
@@ -174,7 +172,7 @@ long fullWrite(int fd, const void *buf, long count)
 
   return nwritten;
 }
-  
+
 long readLong(FILE *fp)
 {
   unsigned char c1 = getc(fp);
@@ -206,7 +204,7 @@ unsigned char int2bcd(int d)
 {
   if (d >= 0 && d <= 99)
     return ((d / 10) << 4) | (d % 10);
-  else 
+  else
     return d;
 }
 
@@ -230,7 +228,7 @@ const char *stripCwd(const char *fname)
 
   char cwd[PATH_MAX + 1];
   long len;
-  
+
   if (fname == NULL)
     return NULL;
 
@@ -297,13 +295,16 @@ FileExtension fileExtension(const char* fname)
 
 string to_utf8(const u8* input, size_t input_size, Util::Encoding enc)
 {
-#ifdef HAVE_ICONV
     const char* from_encoding = "ISO-8859-1";
     if (enc == Util::Encoding::MSJIS)
         from_encoding = "CP932"; // Code Page 932, aka MS-JIS
 
-    char* src = (char*)alloca(input_size + 1);
-    memcpy(src, input, input_size);
+    // Have to jump through hoops due to silly const iconv nonsense.
+    char* abuffer = (char*)alloca(input_size + 1);
+    memcpy(abuffer, input, input_size);
+    abuffer[input_size] = 0; // Should not be necessary in theory
+    ICONV_CONST char* src = (ICONV_CONST char*)abuffer;
+
     size_t srclen = input_size;
     size_t dstlen = input_size * 4;
     char* dst = (char*)alloca(dstlen);
@@ -317,14 +318,10 @@ string to_utf8(const u8* input, size_t input_size, Util::Encoding enc)
     }
     *dst = 0;
     return string(orig_dst);
-#else
-    return string((char*)input);
-#endif
 }
 
 bool from_utf8(const string& input, std::vector<u8>& output, Encoding enc)
 {
-#ifdef HAVE_ICONV
     const char* to_encoding;
     switch (enc) {
     case Encoding::ASCII:
@@ -336,8 +333,11 @@ bool from_utf8(const string& input, std::vector<u8>& output, Encoding enc)
     default:
         to_encoding = "ISO-8859-1";
     }
-    char* src = (char*)alloca(input.size() + 1);
-    strcpy(src, input.c_str());
+
+    char* abuffer = (char*)alloca(input.size() + 1);
+    strcpy(abuffer, input.c_str());
+    ICONV_CONST char* src = (ICONV_CONST char*)abuffer;
+
     size_t srclen = input.size();
     size_t dstlen = srclen * 4;
     char* dst = (char*)alloca(dstlen);
@@ -350,10 +350,7 @@ bool from_utf8(const string& input, std::vector<u8>& output, Encoding enc)
 
     while (origdst < dst)
         output.push_back(*origdst++);
-#else
-    output.resize(input.size());
-    std::copy(input.begin(), input.end(), output.begin());
-#endif
+    output.push_back(0);
     return true;
 }
 
@@ -400,12 +397,12 @@ bool isStrictAscii(const std::string& str)
 
 bool isValidUTF8(const char* str)
 {
-#ifndef HAVE_ICONV
-  return true;
-#else
   const char* encoding = "UTF-8";
-  char* src = (char*)alloca(strlen(str) + 1);
-  strcpy(src, str);
+
+  char* abuffer = (char*)alloca(strlen(str) + 1);
+  strcpy(abuffer, str);
+  ICONV_CONST char* src = (ICONV_CONST char*)abuffer;
+
   size_t srclen = strlen(src);
   size_t dstlen = srclen * 2;
   char* dst = (char*)alloca(dstlen);
@@ -416,7 +413,6 @@ bool isValidUTF8(const char* str)
     return false;
   else
     return true;
-#endif
 }
 
 bool processMixedString(std::string& str, bool& is_utf8)

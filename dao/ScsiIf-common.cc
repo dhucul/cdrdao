@@ -16,21 +16,6 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/*
- * $Log: ScsiIf-common.cc,v $
- * Revision 1.4  2007/12/29 12:26:33  poolshark
- * Complete rewrite of native Linux SG driver for SG 3.0 using SG_IO ioctl. Code cleanup
- *
- * Revision 1.3  2004/04/13 01:23:44  poolshark
- * Cleanup of scglib selection. Fixed without-scglib option. Default build of scsilib was problematic on older systems
- *
- * Revision 1.2  2004/03/23 18:46:07  poolshark
- * MMC autodetect mode
- *
- * Revision 1.1.1.1  2000/02/05 01:36:55  llanero
- * Uploaded cdrdao 1.1.3 with pre10 patch applied.
- *
- */
 
 // checks if unit is ready
 // return: 0: OK, ready
@@ -83,33 +68,14 @@ int ScsiIf::testUnitReady()
   return ret;
 }
 
-typedef struct {
-    unsigned char p_len;
-    unsigned cd_r_read : 1;
-    unsigned cd_rw_read : 1;
-    unsigned method2  : 1;
-    unsigned dvd_rom_read : 1;
-    unsigned dvd_r_read : 1;
-    unsigned dvd_ram_read : 1;
-    unsigned res_2_67 : 2;
-    unsigned cd_r_write : 1;
-    unsigned cd_rw_write : 1;
-    unsigned test_write : 1;
-    unsigned res_3_3  : 1;
-    unsigned dvd_r_write : 1;
-    unsigned dvd_ram_write : 1;
-    unsigned res_3_67 : 2;
-} cd_page_2a;
-
-bool ScsiIf::checkMmc(bool *cd_r_read,  bool *cd_r_write,
-                      bool *cd_rw_read, bool *cd_rw_write)
+cd_page_2a* ScsiIf::checkMmc()
 {
     static const int MODE_SENSE_G1_CMD = 0x5a;
     static const int MODE_MAX_SIZE = 256;
     static const int MODE_PAGE_HEADER_SIZE = 8;
     static const int MODE_CD_CAP_PAGE = 0x2a;
 
-    unsigned char mode[MODE_MAX_SIZE];
+    static unsigned char mode[MODE_MAX_SIZE];
     memset(mode, 0, sizeof(mode));
 
     // First, read header of mode page 0x2A, to figure out its exact
@@ -122,7 +88,7 @@ bool ScsiIf::checkMmc(bool *cd_r_read,  bool *cd_r_write,
     cmd[8] = MODE_PAGE_HEADER_SIZE;
     if (sendCmd((unsigned char*)&cmd, 10, NULL, 0, mode,
 		MODE_PAGE_HEADER_SIZE) != 0) {
-	return false;
+	return NULL;
     }
 
     int len = ((mode[0] << 8) + mode[1]) + 2; // +2 is for address field
@@ -135,14 +101,8 @@ bool ScsiIf::checkMmc(bool *cd_r_read,  bool *cd_r_write,
     cmd[2] = MODE_CD_CAP_PAGE;
     cmd[8] = len;
     if (sendCmd((unsigned char*)&cmd, 10, NULL, 0, mode, len) != 0) {
-	return false;
+	return NULL;
     }
 
-  cd_page_2a *p2a = (cd_page_2a*)(mode + 9);
-
-  *cd_r_read   = p2a->cd_r_read;
-  *cd_r_write  = p2a->cd_r_write;
-  *cd_rw_read  = p2a->cd_rw_read;
-  *cd_rw_write = p2a->cd_rw_write;
-  return true;
+  return (cd_page_2a*)(mode + 9);
 }

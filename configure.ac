@@ -1,16 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_REVISION($Revision: 1.26 $)dnl
 
-AC_INIT([cdrdao],[1.2.5])
-AC_CONFIG_MACRO_DIR([m4])
-
+AC_INIT([cdrdao],[1.2.6])
+AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_SRCDIR(dao/main.cc)
 AM_INIT_AUTOMAKE(subdir-objects)
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
-#AM_GCONF_SOURCE_2
-AM_ICONV
 
 AC_ARG_WITH(pcctsbin,[  --with-pcctsbin=dir     set directory of PCCTS parser generator executables],[pcctsbin=$withval],[pcctsbin=default])
 
@@ -19,8 +16,6 @@ AC_ARG_WITH(pcctsinc,[  --with-pcctsinc=dir     set directory of PCCTS parser ge
 AC_ARG_WITH(linux-qnx-sched,[  --with-linux-qnx-sched  enable QNX real time scheduling for Linux],[AC_DEFINE(LINUX_QNX_SCHEDULING,1,"Use real time scheduling for Linux")])
 
 AC_ARG_WITH(posix-threads,[  --with-posix-threads    use Posix threads for ring buffer (default is YES)],[use_pthreads=$withval],[use_pthreads=default])
-
-AC_ARG_WITH(scglib,[  --with-scglib           use bundled libscg SCSI library (see INSTALL) (default is NO)],[scglib=$withval],[scglib=default])
 
 AC_ARG_WITH(gcdmaster,[  --with-gcdmaster             enable build of gcdmaster Gnome GUI front-end (default is YES)],[gcdmaster=$withval],[gcdmaster=default])
 
@@ -31,7 +26,7 @@ AC_ARG_WITH(mp3-support,[  --with-mp3-support      enable MP3 format support (de
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX_11
+AX_CXX_COMPILE_STDCXX_14
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_RANLIB
@@ -42,6 +37,7 @@ AC_PATH_TOOL([PKG_CONFIG], [pkg-config])
 dnl Checks for header files.
 AC_CHECK_INCLUDES_DEFAULT
 AC_PROG_EGREP
+AC_FUNC_ALLOCA
 
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(fcntl.h getopt.h malloc.h unistd.h sys/mman.h sched.h)
@@ -237,6 +233,12 @@ if test "$gcdmaster" = yes; then
         [echo "Building of gcdmaster disabled"; en_gcdmaster=no])
 fi
 
+AM_ICONV
+if test "$am_func_iconv" = no; then
+  AC_MSG_ERROR("No iconv library found")
+fi
+
+
 dnl Determine source for scsi interface class
 
 scsilib_libs=""
@@ -252,7 +254,7 @@ case "$host" in
       scsilib_objs="ScsiIf-freebsd-cam.o"
       ;;
 
-  *-netbsd*)
+  *-netbsd* | *-openbsd*)
       scsilib_libs="-lutil"
       scsilib_objs="ScsiIf-netbsd.o"
       ;;
@@ -263,17 +265,17 @@ case "$host" in
       ;;
 
   *-darwin*)
-      scsilib_libs="-framework IOKit -framework CoreFoundation -liconv"
+      scsilib_libs="-framework IOKit -framework CoreFoundation"
       scsilib_objs="ScsiIf-osx.o"
       ;;
 
-  *-pc-cygwin*)
+  *-pc-cygwin* | *mingw*)
       scsilib_libs=""
-      scsilib_objs="ScsiIf-win.o"
+      scsilib_objs="ScsiIf-nt.o"
       ;;
 
   *)
-      AC_MSG_ERROR([No native interface for operating system $host_os, use --with-libscg])
+      AC_MSG_ERROR([No native SCSI interface for operating system $host_os])
       ;;
 esac
 
@@ -296,10 +298,13 @@ dnl -lc_r is automatically done by the linker
 	      ;;
   *darwin*)
             AC_DEFINE(_P1003_1B_VISIBLE,1,"")
-            LIBS="$LIBS -framework CoreServices -framework IOKit -liconv"
+            LIBS="$LIBS -framework CoreServices -framework IOKit"
             CXXFLAGS="$CXXFLAGS -std=c++11"
             ;;
-
+  *-openbsd*)
+            CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+            LDFLAGS="$LDFLAGS -L/usr/local/lib"
+            ;;
 esac
 
 dnl Sound device selection for xcdrdao

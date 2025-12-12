@@ -27,6 +27,24 @@
 #include <string>
 #include "util.h"
 
+typedef struct {
+    unsigned char p_len;
+    unsigned cd_r_read : 1;
+    unsigned cd_rw_read : 1;
+    unsigned method2  : 1;
+    unsigned dvd_rom_read : 1;
+    unsigned dvd_r_read : 1;
+    unsigned dvd_ram_read : 1;
+    unsigned res_2_67 : 2;
+    unsigned cd_r_write : 1;
+    unsigned cd_rw_write : 1;
+    unsigned test_write : 1;
+    unsigned res_3_3  : 1;
+    unsigned dvd_r_write : 1;
+    unsigned dvd_ram_write : 1;
+    unsigned res_3_67 : 2;
+} cd_page_2a;
+
 class ScsiIfImpl;
 
 //! \brief Base class to communicate with SCSI device
@@ -56,12 +74,8 @@ public:
     /*! \brief Accessor method: SCSI LUN of the device. */
     const int lun ();
 
-    //! \brief Opens the scsi device. Most of the code originates
-    // from cdrecord's initialization function.
-    // Tries to build a scglib SCSI* object using device specified in
-    // ScsiIf::ScsiIf and issues an inquiry to test the
-    // communication. Gets max DMA transfer length using scg_bufsize,
-    // upto MAX_DATALEN_LIMIT, and builds a buffer of this size.
+    //! \brief Opens the scsi device. Issues an inquiry to test the
+    // communication. Gets max DMA transfer length.
     //
     // \return int
     //   - 0 OK
@@ -83,7 +97,7 @@ public:
     //        parameters to the command
     // \param dataInLen Length of input buffer. dataOutLen or
     //        dataInLen must be 0.
-    // \param showMessage If 0 makes scglib silent. If 1 verbose
+    // \param showMessage If 0 makes it silent. If 1 verbose
     //        command execution.
     // \return int
     //   - 0 OK
@@ -93,13 +107,11 @@ public:
 		const u8 *dataOut, int dataOutLen,
 		u8 *dataIn, int dataInLen, int showMessage = 1);
 
-    //! \brief Return the actual sense buffer in scglib
+    //! \brief Return the actual sense buffer
     // \param len will be overwritten and contain
-    //        ScsiIf::impl->scgp_->scmd->sense_count (length of returned
-    //        buffer).
-    //	\return ScsiIf::impl->scgp_->scmd->u_sense.cmd_sense. This
-    //	      buffer contains last sense data available to scglib. The
-    //	      buffer is owned by scglib and must not be freed.
+    //        the length of returned buffer.
+    //	\return buffer contains last sense data available. The
+    //	      buffer is owned and must not be freed.
     const u8 *getSense(int &len) const;
   
     //! \brief Prints extended status information of the last SCSI command.
@@ -112,8 +124,6 @@ public:
     //  - DMA status
     //  - SCSI timing
     //
-    // to file specified in ScsiIf::impl_->scgp_->errfile (defaults to
-    // stderr)
     void printError();
 
     //! \brief Sets new timeout (seconds) and returns old timeout.
@@ -130,8 +140,7 @@ public:
 
     //! \brief Check for mmc capability. Return whether the
     //driver/drive can read and write CD-R and CD-RW disks.
-    bool checkMmc(bool *cd_r_read,  bool *cd_r_write,
-		  bool *cd_rw_read, bool *cd_rw_write);
+    cd_page_2a* checkMmc();
 
     struct ScanData {
 	std::string dev;

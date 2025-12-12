@@ -21,6 +21,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <iomanip>
 
 #include "CdTextItem.h"
 #include "CdTextContainer.h"
@@ -52,10 +53,11 @@ void CdTextItem::setRawText(const u8* buffer, size_t buffer_len)
 
 void CdTextItem::setRawText(const std::string& str)
 {
-    data_.resize(str.size());
+    data_.resize(str.size() + 1);
     auto writer = data_.begin();
     for (const auto c : str)
         *writer++ = c;
+    *writer++ = '\0';
     dataType_ = DataType::SBCC;
     updateEncoding();
 }
@@ -95,19 +97,30 @@ void CdTextItem::print(std::ostream &out, PrintParams& params) const
     char buf[20];
     out << packType2String(isTrackPack(), packType_);
 
+    auto printchar = [&](unsigned char c, bool ascii_only) {
+        if (c == '"')
+            out << "\\\"";
+        else if (c == '\\')
+            out << "\\\\";
+        else if (ascii_only && (c < 32 || c >= 127))
+            out << "\\" << std::oct << std::setfill('0') << std::setw(3) << (unsigned int)c;
+        else
+            out << c;
+    };
+
     if (dataType() == DataType::SBCC) {
-        if (params.no_utf8) {
-            out << " \"";
+        out << " \"";
+        if (params.no_utf8 || u8text.empty()) {
             for (auto c : data_) {
-                if (c >= 128)
-                    out << "\\" << std::oct << (unsigned int)c;
-                else
-                    out << c;
+                if (c == '\0')
+                    break;
+                printchar(c, true);
             }
-            out << "\"";
         } else {
-            out << " \"" << u8text << "\"";
+            for (auto c : u8text)
+                printchar(c, false);
         }
+        out << "\"";
     }
     else {
         long i = 0;
@@ -115,7 +128,7 @@ void CdTextItem::print(std::ostream &out, PrintParams& params) const
         out << " {";
         for (auto c : data_) {
             if (i == 0) {
-                sprintf(buf, "%2d", c);
+                snprintf(buf, sizeof(buf), "%2d", c);
                 out << buf;
             }
             else {
@@ -124,7 +137,7 @@ void CdTextItem::print(std::ostream &out, PrintParams& params) const
                 else
                     out << ", ";
 
-                sprintf(buf, "%2d", c);
+                snprintf(buf, sizeof(buf), "%2d", c);
                 out << buf;
             }
             i++;

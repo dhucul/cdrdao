@@ -33,10 +33,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifdef HAVE_ICONV
 #include <iconv.h>
 #include <langinfo.h>
-#endif
 
 #include <lame/lame.h>
 
@@ -312,12 +310,9 @@ lame_global_flags *init_encoder(int bitrate)
 
 string to_utf8(const string& input)
 {
-#ifndef HAVE_ICONV
-  return input;
-#else
   if (ENCODING == "UTF-8")
     return input;
-  char* src = (char*)alloca(input.size() + 1);
+  ICONV_CONST char* src = (ICONV_CONST char*)alloca(input.size() + 1);
   strcpy(src, input.c_str());
   size_t srclen = strlen(src);
   size_t dstlen = srclen * 4;
@@ -332,15 +327,13 @@ string to_utf8(const string& input)
   }
   *dst = 0;
   return string(orig_dst);
-#endif
 }
 
-#ifdef HAVE_ICONV
 vector<short unsigned int> to_utf16(const string& input)
 {
   vector<short unsigned int> vec;
 
-  char* src = (char*)alloca(input.size() + 1);
+  ICONV_CONST char* src = (ICONV_CONST char*)alloca(input.size() + 1);
   strcpy(src, input.c_str());
   size_t srclen = strlen(src);
   size_t dstlen = srclen * 4;
@@ -358,11 +351,9 @@ vector<short unsigned int> to_utf16(const string& input)
   vec.push_back(0);
   return vec;
 }
-#endif
 
 void set_id3v2tag(lame_global_flags* lf, int type, const string &str)
 {
-#ifdef HAVE_ICONV
   if (ENCODING != "ISO-8859-1") {
     auto dst = to_utf16(str);
     switch (type) {
@@ -378,7 +369,6 @@ void set_id3v2tag(lame_global_flags* lf, int type, const string &str)
     }
     return;
   }
-#endif
 
   switch (type)
   {
@@ -413,7 +403,7 @@ void set_id3_tags(lame_global_flags *lf, int tracknr, const string &title,
     set_id3v2tag(lf, 'l', album.c_str());
 
   if (tracknr > 0 && tracknr <= 255) {
-    sprintf(buf, "%d", tracknr);
+    snprintf(buf, sizeof(buf), "%d", tracknr);
     id3tag_set_track(lf, buf);
   }
 }
@@ -557,9 +547,7 @@ int main(int argc, char **argv)
   char sbuf[100];
   int err = 0;
 
-#ifdef HAVE_ICONV
   setlocale(LC_CTYPE, "");
-#endif
 
   PRGNAME = *argv;
 
@@ -686,7 +674,7 @@ int main(int argc, char **argv)
       // build mp3 file name
       string mp3FileName;
       
-      sprintf(sbuf, "%02d", trackNr);
+      snprintf(sbuf, sizeof(sbuf), "%02d", trackNr);
       
       mp3FileName += sbuf;
       mp3FileName += SEPARATOR;

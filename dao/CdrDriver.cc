@@ -833,8 +833,8 @@ CdrDriver *CdrDriver::createDriver(const char *driverId, unsigned long options,
 
 const char *CdrDriver::detectDriver(ScsiIf *scsiIf, unsigned long *options)
 {
-  bool cd_r_read, cd_r_write, cd_rw_read, cd_rw_write;
-  if (scsiIf->checkMmc(&cd_r_read, &cd_r_write, &cd_rw_read, &cd_rw_write)) {
+  if (scsiIf->checkMmc()) {
+    *options |= OPT_MMC_CD_TEXT;
     return "generic-mmc";
   }
 
@@ -1327,7 +1327,7 @@ int CdrDriver::writeZeros(TrackData::Mode m, TrackData::SubChannelMode sm,
 #if 0
   static int wcount = 0;
   char fname[100];
-  sprintf(fname, "zeros%d.out", wcount++);
+  snprintf(fname, sizeof(fname), "zeros%d.out", wcount++);
   FILE *fp = fopen(fname, "w");
 #endif
 
@@ -2073,7 +2073,7 @@ static char *buildDataFileName(int trackNr, CdToc *toc, int nofTracks,
 
   if ((toc[trackNr].adrCtl & 0x04) != 0) {
     // data track
-    sprintf(buf, "_%d", trackNr + 1);
+      snprintf(buf, sizeof(buf), "_%d", trackNr + 1);
     return strdup3CC(basename, buf, NULL);
   }
 
@@ -2112,7 +2112,7 @@ static char *buildDataFileName(int trackNr, CdToc *toc, int nofTracks,
     return strdup3CC(basename, extension, NULL);
   }
   else {
-    sprintf(buf, "_%d-%d", start + 1, end + 1);
+    snprintf(buf, sizeof(buf), "_%d-%d", start + 1, end + 1);
     return strdup3CC(basename, buf, extension);
   }
 }
@@ -3105,7 +3105,7 @@ vector<CdTextItem*> processPacks(CdTextPack* packs, int nofPacks)
             buf[pos] = 0;
             {
                 auto item = new CdTextItem(packType, blockNumber);
-                item->setRawText((u8*)buf, pos);
+                item->setRawText((u8*)buf, pos+1);
                 item->trackNr(trackNumber);
                 items.push_back(item);
             }
