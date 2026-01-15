@@ -33,6 +33,7 @@ gcdmaster_SOURCES = \
 	SampleDisplay.cc 	\
 	SampleManager.cc 	\
 	Settings.cc 		\
+	TaskManager.cc		\
 	TextEdit.cc 		\
 	TocEdit.cc 		\
 	TocEditView.cc 		\
@@ -71,6 +72,7 @@ gcdmaster_SOURCES = \
 	MessageBox.h		\
 	SampleDisplay.h		\
 	TrackManager.h		\
+	TaskManager.h		\
 	DeviceConfDialog.h	\
 	ProcessMonitor.h	\
 	SampleManager.h		\
@@ -111,6 +113,10 @@ endif
 if COND_OGG
 gcdmaster_LDADD += @VORBISFILE_LIBS@
 AM_CXXFLAGS += @VORBISFILE_CFLAGS@
+endif
+
+if COND_FLAC
+gcdmaster_LDADD += @FLAC_LIBS@ @SAMPLERATE_LIBS@
 endif
 
 gcdmaster_LDADD += @AO_LIBS@

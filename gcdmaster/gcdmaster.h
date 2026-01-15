@@ -20,69 +20,69 @@
 #ifndef __GCDMASTER_H__
 #define __GCDMASTER_H__
 
-#include <gtkmm.h>
 #include <gtk/gtk.h>
+#include <gtkmm.h>
 
 #include <list>
 
 class ProjectChooser;
 class BlankCDDialog;
-#include "Project.h"
 #include "BlankCDDialog.h"
+#include "Project.h"
 
 class GCDMaster : public Gtk::ApplicationWindow
 {
-public:
-  GCDMaster();
+  public:
+    GCDMaster();
 
-  bool closeProject();
-  void closeChooser();
-  bool on_delete_event(GdkEventAny* e);
-  bool openNewProject(const std::string&);
-  void openProject();
-  void newChooserWindow();
-  void newAudioCDProject2();
-  void newAudioCDProject(const char *name, TocEdit *tocEdit,
-                         const char* tracks = NULL);
-  void newDuplicateCDProject();
-  void newDumpCDProject();
+    bool closeProject();
+    void closeChooser();
+    bool on_delete_event(GdkEventAny *e);
+    bool openNewProject(const std::string &);
+    void openProject();
+    void newChooserWindow();
+    void newAudioCDProject2();
+    void newAudioCDProject(const char *name, TocEdit *tocEdit, const char *tracks = NULL);
+    void newDuplicateCDProject();
+    void newDumpCDProject();
 
-  void update(unsigned long level);
+    void update(unsigned long level);
 
-  void configureDevices();
-  void configurePreferences();
-  void blankCDRW();
+    void configureDevices();
+    void configurePreferences();
+    void blankCDRW();
 
-  void registerStockIcons();
+    void registerStockIcons();
 
-  static void appClose();
+    static void appClose();
 
-  static std::list<GCDMaster *> apps;
+    static std::list<GCDMaster *> apps;
 
-private:
-  Project* project_;
-  ProjectChooser* chooser_;
-  gint project_number;
+  private:
+    Project *project_;
+    ProjectChooser *chooser_;
+    gint project_number;
 
-  BlankCDDialog blankCDDialog_;
+    BlankCDDialog blankCDDialog_;
 
-  Gtk::Box box_;
-  Gtk::Notebook notebook_;
-  Gtk::HBox* container_;
+    Gtk::Box box_;
+    Gtk::Notebook notebook_;
+    Gtk::HBox *container_;
 
-  Glib::RefPtr<Gtk::UIManager> m_refUIManager;
-  Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
+    Glib::RefPtr<Gtk::UIManager> m_refUIManager;
+    Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
 
-  Gtk::Statusbar* statusbar_;  
-  Gtk::ProgressBar* progressbar_;  
-  Gtk::Button* progressButton_;  
-  Gtk::AboutDialog* about_;
+    Gtk::Statusbar *statusbar_;
+    Gtk::ProgressBar *progressbar_;
+    Gtk::Spinner *spinner_;
+    Gtk::Button *progressButton_;
+    Gtk::AboutDialog *about_;
 
-  Gtk::FileChooserDialog* readFileSelector_;
-  void createMenus();
-  void createStatusbar();
-  void aboutDialog();
-  void on_about_ok(int);
+    Gtk::FileChooserDialog *readFileSelector_;
+    void createMenus();
+    void createStatusbar();
+    void aboutDialog();
+    void on_about_ok(int);
 };
 
 #endif

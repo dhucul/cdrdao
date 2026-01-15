@@ -19,12 +19,13 @@
 
 #include <gtkmm.h>
 #include <iostream>
+#include <string>
 
-#include "xcdrdao.h"
+#include "Icons.h"
+#include "ProjectChooser.h"
 #include "gcdmaster.h"
 #include "guiUpdate.h"
-#include "ProjectChooser.h"
-#include "Icons.h"
+#include "xcdrdao.h"
 
 #define ICON_PADDING 10
 #define LABEL_PADDING 10
@@ -32,60 +33,57 @@
 
 ProjectChooser::ProjectChooser()
 {
-  Glib::RefPtr<Gtk::Builder> builder;
-  try
-  {
-	  builder = Gtk::Builder::create_from_file(CDRDAO_GLADEDIR "/ProjectChooser.glade", "mainbox");
-  }
-  catch(const Glib::Exception& ex)
-  {
-    try
-    {
-    	builder = Gtk::Builder::create_from_file("glade/ProjectChooser.glade", "mainbox");
+    Glib::RefPtr<Gtk::Builder> builder;
+    try {
+        std::string glade_path(CDRDAO_GLADEDIR);
+        auto override = getenv("CDRDAO_HOME");
+        if (override) {
+            glade_path = override;
+            glade_path += "/gcdmaster/glade";
+        }
+        glade_path += "/ProjectChooser.glade";
+        builder = Gtk::Builder::create_from_file(glade_path.c_str(), "mainbox");
+    } catch (const Glib::Exception &ex) {
+        try {
+            builder = Gtk::Builder::create_from_file("glade/ProjectChooser.glade", "mainbox");
+        } catch (const Glib::Exception &ex) {
+            std::cerr << ex.what() << std::endl;
+            return;
+        }
     }
-    catch(const Glib::Exception& ex)
-    {
-      std::cerr << ex.what() << std::endl;
-      return;
+
+    Gtk::Box *pBox = 0;
+    builder->get_widget("mainbox", pBox);
+    if (!pBox)
+        return;
+
+    Gtk::Image *pImage = 0;
+    builder->get_widget("AudioImage", pImage);
+    if (pImage) {
+        pImage->set(Icons::AUDIOCD, Gtk::ICON_SIZE_DIALOG);
     }
-  }
+    builder->get_widget("CopyImage", pImage);
+    if (pImage) {
+        pImage->set(Icons::COPYCD, Gtk::ICON_SIZE_DIALOG);
+    }
+    builder->get_widget("DumpImage", pImage);
+    if (pImage) {
+        pImage->set(Icons::DUMPCD, Gtk::ICON_SIZE_DIALOG);
+    }
 
-  Gtk::Box* pBox = 0;
-  builder->get_widget("mainbox", pBox);
-  if(!pBox)
-    return;
+    Gtk::Button *pButton = 0;
+    builder->get_widget("AudioButton", pButton);
+    if (pButton) {
+        pButton->signal_clicked().connect(ProjectChooser::newAudioCDProject);
+    }
+    builder->get_widget("CopyButton", pButton);
+    if (pButton) {
+        pButton->signal_clicked().connect(ProjectChooser::newDuplicateCDProject);
+    }
+    builder->get_widget("DumpButton", pButton);
+    if (pButton) {
+        pButton->signal_clicked().connect(ProjectChooser::newDumpCDProject);
+    }
 
-  Gtk::Image* pImage = 0;
-  builder->get_widget("AudioImage", pImage);
-  if (pImage)
-  {
-    pImage->set(Icons::AUDIOCD, Gtk::ICON_SIZE_DIALOG);
-  }
-  builder->get_widget("CopyImage", pImage);
-  if (pImage)
-  {
-    pImage->set(Icons::COPYCD, Gtk::ICON_SIZE_DIALOG);
-  }
-  builder->get_widget("DumpImage", pImage);
-  if (pImage)
-  {
-    pImage->set(Icons::DUMPCD, Gtk::ICON_SIZE_DIALOG);
-  }
-
-	Gtk::Button* pButton = 0;
-	builder->get_widget("AudioButton", pButton);
-	if (pButton) {
-		pButton->signal_clicked().connect(ProjectChooser::newAudioCDProject);
-	}
-	builder->get_widget("CopyButton", pButton);
-	if (pButton) {
-		pButton->signal_clicked().connect(
-				ProjectChooser::newDuplicateCDProject);
-	}
-	builder->get_widget("DumpButton", pButton);
-	if (pButton) {
-		pButton->signal_clicked().connect(ProjectChooser::newDumpCDProject);
-	}
-
-  pack_start(*pBox);
+    pack_start(*pBox);
 }
