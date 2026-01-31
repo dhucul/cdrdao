@@ -3031,6 +3031,15 @@ vector<CdTextItem *> processPacks(CdTextPack *packs, int nofPacks)
                         buf[pos++] = p.data[i];
 
                     if (i < 12) {
+                        // If this pack has double-width characters, ends with a single zero, and
+                        // the next pack starts with zero, skip the first zero and treat the next
+                        // pack's starting zero as the terminator for this string.
+                        if (i == 11 && (p.blockCharacter & 0x80) && nofPacks > 0 &&
+                            packs->data[0] == 0) {
+                            i = 12;
+                            continue;
+                        }
+
                         // string is finished
                         buf[pos] = 0;
                         {
@@ -4104,7 +4113,7 @@ long CdrDriver::audioRead(TrackData::SubChannelMode sm, int byteOrder, Sample *b
                             // http://sourceforge.net/tracker/?func=detail&aid=604751&group_id=2171&atid=102171
                             // atime starts at 02:00, so subtract it
                             audioReadTrackInfo_[t].pregap =
-                                (startLba + len + 1) - (atime.lba() - 150);
+                                audioReadTrackInfo_[t].start - (atime.lba() - 150);
                             log_message(2, "Found pre-gap: %s",
                                         Msf(audioReadTrackInfo_[t].pregap).str());
                         }
